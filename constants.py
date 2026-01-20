@@ -19,9 +19,8 @@ BLUE = (0, 0, 255)
 GRAY = (128, 128, 128)
 
 # Chemins des fichiers / File paths
-# Chemins des fichiers / File paths
-WORD_FILE = "mots.json"
-SCORE_FILE = "scores.json"
+WORD_FILE = "mots.txt"
+SCORE_FILE = "scores.txt"
 
 # Paramètres du jeu / Game settings
 MAX_LIVES = 7

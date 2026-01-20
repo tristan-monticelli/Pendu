@@ -7,22 +7,22 @@ Structure refactorisée avec une classe Game pour éviter les if/else imbriqués
 import pygame
 import random
 import sys
-import json
 import traceback
 from constants import *
 from interface import Interface
 import score as score_module
 
 def load_words():
+    """
+    Charge les mots depuis le fichier TXT (un mot par ligne).
+    """
     words = []
     try:
         with open(WORD_FILE, "r", encoding="utf-8") as f:
-            words = json.load(f)
-            words = [str(w).upper() for w in words]
+            lines = f.readlines()
+            words = [line.strip().upper() for line in lines if line.strip()]
     except FileNotFoundError:
         print(f"Erreur: {WORD_FILE} introuvable.")
-    except json.JSONDecodeError:
-        print(f"Erreur: {WORD_FILE} est corrompu.")
     except Exception as e:
         print(f"Erreur inattendue chargement mots: {e}")
     return words

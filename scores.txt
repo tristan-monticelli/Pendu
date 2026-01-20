@@ -1,0 +1,9 @@
+Marie|999999|False
+Manon|999999|False
+Marie|60|False
+Manon|1.37|False
+Angie|2.53|False
+Manon|1.7|False
+Marie|2.40|False
+Manon|1.05|False
+Marie|1.53|False
