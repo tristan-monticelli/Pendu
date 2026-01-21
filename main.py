@@ -28,19 +28,19 @@ def load_words():
     return words
 
 def add_word_to_file(word):
+    """
+    Ajoute un mot au fichier TXT s'il n'existe pas déjà.
+    """
     if not word:
         return False
     try:
-        try:
-           words = load_words()
-        except:
-            words = []
+        words = load_words()
         
         new_word = word.upper().strip()
         if new_word and new_word not in words:
-            words.append(new_word)
-            with open(WORD_FILE, "w", encoding="utf-8") as f:
-                json.dump(words, f, indent=4)
+            # Ajouter le mot à la fin du fichier
+            with open(WORD_FILE, "a", encoding="utf-8") as f:
+                f.write(f"{new_word}\n")
             return True
         else:
             return False 
