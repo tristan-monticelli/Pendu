@@ -8,3 +8,4 @@ venv/
 
 # le Classement généré 
 data/leaderboard.txt
+data/mots.txt
