@@ -1,0 +1,66 @@
+"""
+core/input_normalize.py
+
+Objectif :
+- filtrer les entrées clavier
+- renvoyer une lettre propre pour apply_guess
+
+Fonctions EXACTES :
+- is_valid_letter_event(event) -> bool
+- normalize_letter_input(event) -> str | None
+- normalize_accents_if_enabled(ch) -> str
+
+Décision :
+- Par défaut : on NORMALISE les accents (é -> e) pour simplifier le jeu.
+"""
+
+import unicodedata
+
+fonction is_valid_letter_event(event):
+    """
+    Vérifie si event correspond à une lettre.
+
+    Étapes :
+    1) si event.type != KEYDOWN -> False
+    2) récupérer unicode = event.unicode
+    3) si unicode vide -> False
+    4) si len(unicode) != 1 -> False
+    5) si pas alphabétique -> False
+    6) True
+    """
+    vérifier type event
+    récupérer unicode
+    vérifier taille 1
+    vérifier alphabétique
+    retourner True/False
+
+
+fonction normalize_letter_input(event):
+    """
+    Retourne une lettre minuscule normalisée ou None.
+
+    Étapes :
+    1) si is_valid_letter_event False -> None
+    2) ch = event.unicode.lower()
+    3) ch = normalize_accents_if_enabled(ch)
+    4) retourner ch
+    """
+    si invalide:
+        retourner None
+    ch = unicode minuscule
+    ch = normalize_accents_if_enabled(ch)
+    retourner ch
+
+
+fonction normalize_accents_if_enabled(ch):
+    """
+    Normalise accents : é -> e.
+
+    Étapes :
+    1) décomposer en NFD
+    2) filtrer les diacritiques (Mn)
+    3) retourner la lettre base
+    """
+    décomposer NFD
+    supprimer Mn
+    retourner résultat

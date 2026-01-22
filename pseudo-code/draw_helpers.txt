@@ -1,0 +1,110 @@
+"""
+ui/draw_helpers.py
+
+Objectif :
+- Regrouper des fonctions d'affichage réutilisables dans toutes les scènes.
+- Simplifier le code des scènes (moins de répétitions).
+
+Fonctions EXACTES à coder :
+- clear_screen(screen)
+- draw_title(screen, fonts, text)
+- format_duration(seconds) -> str
+- draw_table(screen, fonts, headers, rows, top_left)
+
+Règles :
+- Ne contient PAS de logique de jeu
+- Ne modifie PAS runtime_state
+"""
+
+fonction clear_screen(screen):
+    """
+    Efface l'écran.
+
+    Entrée :
+    - screen : surface Pygame
+
+    Étapes :
+    1) choisir une couleur de fond (ex: noir ou gris sombre)
+    2) remplir l'écran avec cette couleur
+    """
+    remplir screen avec couleur_fond
+
+
+fonction draw_title(screen, fonts, text):
+    """
+    Affiche un titre centré en haut.
+
+    Entrées :
+    - screen
+    - fonts : dict (doit contenir "title")
+    - text : str
+
+    Étapes :
+    1) récupérer font_title = fonts["title"]
+    2) rendre le texte (font.render)
+    3) récupérer la taille du rendu (rect)
+    4) calculer x pour centrer (screen_width/2 - text_width/2)
+    5) positionner y (ex: 40)
+    6) blit sur screen
+    """
+    récupérer font_title
+    rendre text
+    calculer position centrée
+    blit
+
+
+fonction format_duration(seconds):
+    """
+    Convertit un nombre de secondes en chaîne "MM:SS".
+
+    Entrée :
+    - seconds : int
+
+    Sortie :
+    - str
+
+    Étapes :
+    1) si seconds < 0 : seconds = 0
+    2) minutes = seconds // 60
+    3) sec = seconds % 60
+    4) retourner f"{minutes:02d}:{sec:02d}"
+    """
+    si seconds < 0:
+        seconds = 0
+    minutes = seconds // 60
+    sec = seconds % 60
+    retourner format MM:SS
+
+
+fonction draw_table(screen, fonts, headers, rows, top_left):
+    """
+    Dessine un tableau simple (pour le classement).
+
+    Entrées :
+    - headers : list[str]
+    - rows : list[list[str]]
+    - top_left : tuple(x, y)
+
+    Hypothèses :
+    - fonts contient "body" (et éventuellement "small")
+    - Colonnes à largeur fixe (plus simple)
+
+    Étapes :
+    1) définir x0,y0 = top_left
+    2) définir largeur_colonnes (ex: [200, 120, 120, 120, 100])
+    3) dessiner headers (ligne 0) :
+       - pour chaque header :
+         - rendre le texte
+         - blit à la bonne colonne
+    4) dessiner une ligne horizontale sous headers
+    5) dessiner rows :
+       - pour i, row dans rows :
+         - y = y0 + hauteur_header + i*hauteur_ligne
+         - pour chaque cellule :
+             rendre et blit au bon x
+    """
+    x0, y0 = top_left
+    définir largeur_colonnes
+    dessiner headers
+    dessiner ligne séparatrice
+    dessiner chaque ligne

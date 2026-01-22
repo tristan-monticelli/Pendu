@@ -1,0 +1,75 @@
+"""
+add_word_scene.py
+
+Objectif :
+- Ajout mot via mots.txt
+
+Fonctions EXACTES :
+- __init__
+- on_enter
+- handle_event
+- update
+- draw
+"""
+
+import pygame
+from settings import WORDS_PATH, WINDOW_WIDTH, WINDOW_HEIGHT, INPUT_W, INPUT_H, BTN_W, BTN_H
+from core.words_io import add_word
+from ui.widgets import make_button, handle_button_event, draw_button
+from ui.widgets import make_text_input, handle_text_input_event, draw_text_input, show_toast
+from ui.draw_helpers import clear_screen, draw_title
+from ui.layout import center_rect, vertical_stack
+
+classe AddWordScene:
+
+    fonction __init__(manager, shared, runtime_state, payload):
+        enregistrer manager, shared, runtime_state, payload
+        word_input = None
+        btn_add = None
+        btn_back = None
+
+    fonction on_enter():
+        rect_input = center_rect(WINDOW_WIDTH, WINDOW_HEIGHT, INPUT_W, INPUT_H, y_offset=-80)
+        word_input = make_text_input(rect_input, "Entrer un mot", max_len=32)
+
+        rects = vertical_stack(
+            start_x = (WINDOW_WIDTH - BTN_W)/2,
+            start_y = (WINDOW_HEIGHT/2) + 10,
+            width = BTN_W,
+            height = BTN_H,
+            count = 2,
+            gap = 16
+        )
+
+        fonction action_add():
+            ok, msg = add_word(WORDS_PATH, word_input.text)
+            show_toast(runtime_state["toast_manager"], msg, 2.0)
+            si ok:
+                word_input.text = ""
+
+        fonction action_back():
+            manager.go_to("menu")
+
+        btn_add = make_button(rects[0], "Valider", action_add)
+        btn_back = make_button(rects[1], "Retour", action_back)
+
+    fonction handle_event(event):
+        mouse_pos = pygame.mouse.get_pos()
+
+        result = handle_text_input_event(word_input, event)
+
+        si result["submitted"]:
+            appeler btn_add.action()
+
+        handle_button_event(btn_add, event, mouse_pos)
+        handle_button_event(btn_back, event, mouse_pos)
+
+    fonction update(dt):
+        ne rien faire
+
+    fonction draw(screen):
+        clear_screen(screen)
+        draw_title(screen, shared["fonts"], "AJOUTER UN MOT")
+        draw_text_input(screen, word_input, shared["fonts"])
+        draw_button(screen, btn_add, shared["fonts"])
+        draw_button(screen, btn_back, shared["fonts"])

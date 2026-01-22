@@ -1,0 +1,52 @@
+"""
+leaderboard_scene.py
+
+Objectif :
+- Afficher tableau classement trié
+- ESC -> menu
+
+Fonctions EXACTES :
+- __init__
+- on_enter
+- handle_event
+- update
+- draw
+"""
+
+import pygame
+from core.leaderboard_io import sort_leaderboard
+from ui.draw_helpers import clear_screen, draw_title, draw_table, format_duration
+
+classe LeaderboardScene:
+
+    fonction __init__(manager, shared, runtime_state, payload):
+        enregistrer manager, shared, runtime_state, payload
+        headers = ["Pseudo", "Best", "T(best)", "T(total)", "Parties"]
+        rows = []
+
+    fonction on_enter():
+        leaderboard = runtime_state["leaderboard_cache"]
+        profiles = sort_leaderboard(leaderboard)
+
+        rows = []
+        pour chaque p dans profiles:
+            rows.append([
+                p.pseudo,
+                str(p.best_score),
+                format_duration(p.best_score_time_seconds),
+                format_duration(p.total_play_time_seconds),
+                str(p.games_played)
+            ])
+
+    fonction handle_event(event):
+        si event est KEYDOWN et touche ESC:
+            manager.go_to("menu")
+
+    fonction update(dt):
+        ne rien faire
+
+    fonction draw(screen):
+        clear_screen(screen)
+        draw_title(screen, shared["fonts"], "CLASSEMENT")
+        draw_table(screen, shared["fonts"], headers, rows, top_left=(60, 140))
+        afficher "(ESC pour revenir)"

@@ -1,4 +1,10 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+
+# Environnements virtuels
 .venv/
-scores.json
+venv/
+
+# Classement généré (évite les conflits en groupe)
+data/leaderboard.txt

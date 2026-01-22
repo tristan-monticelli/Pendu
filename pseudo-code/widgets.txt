@@ -1,0 +1,184 @@
+"""
+ui/widgets.py
+
+Objectif :
+- Avoir des composants UI clairs et faciles à réutiliser dans toutes les scènes.
+
+À coder :
+- classe Button
+- make_button
+- handle_button_event
+- draw_button
+
+- classe TextInput
+- make_text_input
+- handle_text_input_event
+- draw_text_input
+
+- classe ToastManager
+- show_toast
+- update_toasts
+
+Important :
+- Les scènes ne doivent PAS réimplémenter la gestion du focus/clavier partout.
+"""
+
+classe Button:
+    """
+    Button
+
+    Champs :
+    - rect : pygame.Rect
+    - label : str
+    - action : fonction sans paramètre
+    - enabled : bool
+    - hovered : bool
+    """
+
+    fonction __init__(rect, label, action, enabled=True):
+        enregistrer rect
+        enregistrer label
+        enregistrer action
+        enregistrer enabled
+        hovered = False
+
+
+fonction make_button(rect, label, action, enabled=True):
+    """
+    Crée un Button.
+
+    Retour :
+    - instance Button
+    """
+    retourner Button(rect, label, action, enabled)
+
+
+fonction handle_button_event(button, event, mouse_pos):
+    """
+    Gère hover + clic.
+
+    Entrées :
+    - button : Button
+    - event : event pygame
+    - mouse_pos : tuple(x,y)
+
+    Sortie :
+    - bool clicked (True si action exécutée)
+
+    Étapes EXACTES :
+    1) hovered = rect contient mouse_pos
+    2) si event est MOUSEBUTTONDOWN gauche :
+        - si hovered ET enabled :
+            appeler action
+            retourner True
+    3) sinon False
+    """
+    mettre button.hovered selon mouse_pos dans rect
+    si event est clic gauche:
+        si hovered et enabled:
+            appeler action
+            retourner True
+    retourner False
+
+
+classe TextInput:
+    """
+    TextInput
+
+    Champs :
+    - rect : pygame.Rect
+    - text : str
+    - focused : bool
+    - placeholder : str
+    - max_len : int
+    - validation_message : str
+    """
+
+    fonction __init__(rect, placeholder, max_len):
+        enregistrer rect, placeholder, max_len
+        text = ""
+        focused = False
+        validation_message = ""
+
+
+fonction make_text_input(rect, placeholder, max_len):
+    """Retourne TextInput."""
+    retourner TextInput(rect, placeholder, max_len)
+
+
+fonction handle_text_input_event(input_field, event):
+    """
+    handle_text_input_event
+
+    Sortie :
+    - {"changed": bool, "submitted": bool}
+
+    Étapes :
+    A) Gestion focus (souris)
+    1) si event = clic souris :
+        - si clic dans rect -> focused True
+        - sinon focused False
+
+    B) Gestion clavier si focused
+    2) si focused False -> return {"changed":False,"submitted":False}
+    3) si event = KEYDOWN :
+        - si BACKSPACE -> supprimer 1 char si possible, changed True
+        - si ENTER -> submitted True
+        - sinon -> récupérer event.unicode
+            - si unicode non vide
+            - si len(text) < max_len
+            - ajouter unicode, changed True
+    """
+    result = {"changed": False, "submitted": False}
+
+    si event est clic souris:
+        si position clic dans rect:
+            input_field.focused = True
+        sinon:
+            input_field.focused = False
+
+    si input_field.focused == False:
+        retourner result
+
+    si event est KEYDOWN:
+        si touche BACKSPACE:
+            si text non vide:
+                supprimer dernier caractère
+                result["changed"] = True
+        sinon si touche ENTER:
+            result["submitted"] = True
+        sinon:
+            unicode = event.unicode
+            si unicode non vide:
+                si longueur text < max_len:
+                    ajouter unicode
+                    result["changed"] = True
+
+    retourner result
+
+
+classe ToastManager:
+    """
+    Stocke une liste de toasts.
+
+    toast = {"message": str, "remaining": float}
+    """
+
+    fonction __init__():
+        toasts = liste vide
+
+
+fonction show_toast(toast_manager, message, duration):
+    """
+    Ajoute un toast à la liste.
+    """
+    ajouter {"message": message, "remaining": duration} à toast_manager.toasts
+
+
+fonction update_toasts(toast_manager, dt):
+    """
+    Décrémente remaining et supprime les expirés.
+    """
+    pour chaque toast:
+        toast["remaining"] = toast["remaining"] - dt
+    retirer ceux dont remaining <= 0

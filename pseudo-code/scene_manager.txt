@@ -1,0 +1,92 @@
+"""
+scene_manager.py
+
+Objectif :
+- Centraliser la gestion des scènes.
+- Permettre des transitions propres et simples.
+
+Fonctions EXACTES :
+- __init__(shared_resources, runtime_state)
+- go_to(scene_name, payload=None)
+- dispatch_event(event)
+- update_scene(dt)
+- draw_scene(screen)
+
+Scènes existantes (obligatoires) :
+- menu
+- game
+- add_word
+- leaderboard
+- game_over
+"""
+
+from scenes.menu_scene import MenuScene
+from scenes.game_scene import GameScene
+from scenes.add_word_scene import AddWordScene
+from scenes.leaderboard_scene import LeaderboardScene
+from scenes.game_over_scene import GameOverScene
+
+classe SceneManager:
+
+    fonction __init__(shared_resources, runtime_state):
+        """
+        Initialise registry + démarre sur menu.
+
+        Entrées :
+        - shared_resources : dict
+        - runtime_state : dict
+
+        Étapes :
+        1) stocker shared_resources dans self.shared
+        2) stocker runtime_state dans self.runtime_state
+        3) créer scenes_registry :
+           {"menu": MenuScene, "game": GameScene, ...}
+        4) current_scene = None
+        5) go_to("menu")
+        """
+        enregistrer shared et runtime_state
+        créer scenes_registry
+        current_scene = None
+        appeler go_to("menu", payload={})
+
+    fonction go_to(scene_name, payload=None):
+        """
+        Change de scène.
+
+        Entrées :
+        - scene_name : str
+        - payload : dict ou None
+
+        Étapes :
+        1) vérifier scene_name dans scenes_registry sinon erreur
+        2) SceneClass = scenes_registry[scene_name]
+        3) instancier SceneClass(manager=self, shared=self.shared, runtime_state=self.runtime_state, payload=payload ou {})
+        4) stocker dans self.current_scene
+        5) si la scène a on_enter : appeler on_enter()
+        """
+        vérifier scene_name
+        créer instance scène
+        self.current_scene = instance
+        si méthode on_enter existe:
+            appeler on_enter
+
+    fonction dispatch_event(event):
+        """
+        Délègue l'event à la scène active.
+        """
+        si self.current_scene existe:
+            appeler self.current_scene.handle_event(event)
+
+    fonction update_scene(dt):
+        """
+        Update la scène active.
+        """
+        si self.current_scene existe:
+            appeler self.current_scene.update(dt)
+
+    fonction draw_scene(screen):
+        """
+        Dessine la scène active.
+        """
+        si self.current_scene existe:
+            appeler self.current_scene.draw(screen)

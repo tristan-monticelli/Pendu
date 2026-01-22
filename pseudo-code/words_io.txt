@@ -1,0 +1,96 @@
+"""
+core/words_io.py
+
+Objectif :
+- lire et écrire data/mots.txt
+
+Fonctions EXACTES :
+- load_words(path) -> list[str]
+- validate_word(raw_word) -> (ok, normalized, message)
+- add_word(path, raw_word) -> (ok, message)
+
+Règles :
+- 1 mot par ligne
+- minuscule
+- pas d'espaces
+- pas de ';'
+"""
+
+import os
+
+fonction load_words(path):
+    """
+    Charge la liste de mots.
+
+    Étapes :
+    1) si fichier absent -> []
+    2) lire lignes
+    3) nettoyer : strip + lower
+    4) ignorer vides
+    5) retourner liste
+    """
+    si fichier absent:
+        retourner []
+    words = []
+    lire lignes
+    pour chaque ligne:
+        w = strip + lower
+        si w vide:
+            continuer
+        ajouter w
+    retourner words
+
+
+fonction validate_word(raw_word):
+    """
+    Valide un mot.
+
+    Sortie :
+    - ok : bool
+    - normalized : str
+    - message : str
+
+    Étapes :
+    1) si None -> False
+    2) strip + lower
+    3) si vide -> False
+    4) si contient espace -> False
+    5) si contient ';' -> False
+    6) sinon True
+    """
+    si raw_word None:
+        retourner False,"","Mot vide"
+    w = raw_word strip lower
+    si w vide:
+        retourner False,"","Le mot ne peut pas être vide"
+    si w contient " ":
+        retourner False,"","Le mot ne doit pas contenir d'espaces"
+    si w contient ";":
+        retourner False,"","Caractère interdit : ;"
+    retourner True, w, "Mot valide"
+      
+
+fonction add_word(path, raw_word):
+    """
+    Ajoute un mot si valide et non duplicata.
+
+    Étapes :
+    1) validate_word
+    2) si invalide -> (False,msg)
+    3) load_words -> vérifier doublon
+    4) append au fichier
+    5) return (True,"Mot ajouté")
+    """
+    ok, w, msg = validate_word(raw_word)
+    si ok False:
+        retourner False, msg
+
+    words = load_words(path)
+    si w dans words:
+        retourner False, "Mot déjà présent"
+
+    ouvrir fichier en append
+    écrire "\n" + w (ou w + "\n" selon si fichier finit par newline)
+    fermer
+
+    retourner True, "Mot ajouté"

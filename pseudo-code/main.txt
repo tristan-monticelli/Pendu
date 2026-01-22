@@ -1,0 +1,153 @@
+"""
+main.py
+
+Objectif :
+- Initialiser Pygame
+- Charger ressources
+- Charger classement
+- Créer runtime_state
+- Créer SceneManager
+- Boucle principale (events, update, draw)
+
+Fonctions EXACTES :
+- init_pygame() -> (screen, clock, fonts)
+- load_assets(shared) -> None
+- compute_dt(clock) -> float
+- create_runtime_state() -> dict
+- run_app_loop(screen, clock, manager, runtime_state) -> None
+- main() -> None
+"""
+
+import pygame
+from settings import WINDOW_WIDTH, WINDOW_HEIGHT, FPS, LEADERBOARD_PATH
+from scene_manager import SceneManager
+from core.leaderboard_io import load_leaderboard, get_last_player_summary
+from ui.widgets import ToastManager, update_toasts
+
+fonction init_pygame():
+    """
+    Initialise Pygame + fenêtre + polices.
+
+    Étapes :
+    1) pygame.init()
+    2) screen = set_mode((W,H))
+    3) clock = pygame.time.Clock()
+    4) charger fonts dans dict :
+       - "title"
+       - "body"
+       - "small"
+    5) retourner (screen, clock, fonts)
+    """
+    pygame.init()
+    créer screen
+    créer clock
+    fonts = dict
+    charger fonts (pygame.font.Font)
+    retourner screen, clock, fonts
+
+
+fonction load_assets(shared):
+    """
+    Charge assets (si disponibles).
+
+    Étapes :
+    1) shared["images"] = {}
+    2) shared["sounds"] = {}
+    3) option : initialiser pygame.mixer
+    4) option : charger images hangman_0..N
+    5) option : charger sons click/wrong/win/lose
+    """
+    shared["images"] = {}
+    shared["sounds"] = {}
+    optionnel: init mixer
+    optionnel: charger assets
+
+
+fonction compute_dt(clock):
+    """
+    Calcule delta time.
+
+    Étapes :
+    1) dt_ms = clock.tick(FPS)
+    2) dt_s = dt_ms / 1000.0
+    3) retourner dt_s
+    """
+    dt_ms = clock.tick(FPS)
+    retourner dt_ms / 1000.0
+
+
+fonction create_runtime_state():
+    """
+    Prépare runtime_state.
+
+    Étapes :
+    1) leaderboard = load_leaderboard(LEADERBOARD_PATH)
+    2) last_summary = get_last_player_summary(leaderboard)
+    3) runtime_state = dict avec clés obligatoires
+    """
+    leaderboard = load_leaderboard(LEADERBOARD_PATH)
+    last_summary = get_last_player_summary(leaderboard)
+
+    runtime_state = {
+        "active_pseudo": None,
+        "leaderboard_cache": leaderboard,
+        "last_player_summary": last_summary,
+        "toast_manager": ToastManager(),
+        "should_quit": False
+    }
+    retourner runtime_state
+
+
+fonction run_app_loop(screen, clock, manager, runtime_state):
+    """
+    Boucle principale.
+
+    Étapes :
+    1) tant que should_quit False :
+       a) dt = compute_dt(clock)
+       b) events = pygame.event.get()
+       c) pour chaque event :
+          - si QUIT -> should_quit True
+          - sinon manager.dispatch_event(event)
+       d) manager.update_scene(dt)
+       e) update_toasts(toast_manager, dt)
+       f) manager.draw_scene(screen)
+       g) pygame.display.flip()
+    2) pygame.quit()
+    """
+
+    boucle tant que runtime_state["should_quit"] == False:
+        dt = compute_dt(clock)
+
+        pour chaque event dans pygame.event.get():
+            si event.type == pygame.QUIT:
+                runtime_state["should_quit"] = True
+            sinon:
+                manager.dispatch_event(event)
+
+        manager.update_scene(dt)
+        update_toasts(runtime_state["toast_manager"], dt)
+        manager.draw_scene(screen)
+        pygame.display.flip()
+
+    pygame.quit()
+
+
+fonction main():
+    """
+    Point d'entrée.
+
+    Étapes :
+    1) init_pygame
+    2) shared={"fonts":fonts}
+    3) load_assets(shared)
+    4) runtime_state=create_runtime_state()
+    5) manager=SceneManager(shared, runtime_state)
+    6) run_app_loop(...)
+    """
+    screen, clock, fonts = init_pygame()
+    shared = {"fonts": fonts}
+    load_assets(shared)
+    runtime_state = create_runtime_state()
+    manager = SceneManager(shared, runtime_state)
+    run_app_loop(screen, clock, manager, runtime_state)

@@ -1,0 +1,148 @@
+"""
+menu_scene.py
+
+Objectif :
+- Champ pseudo obligatoire
+- Affichage stats dernier joueur
+- Boutons : Jouer / Ajouter mot / Classement / Quitter
+
+Fonctions EXACTES :
+- __init__
+- on_enter
+- _refresh_play_enabled
+- handle_event
+- update
+- draw
+"""
+
+import pygame
+from settings import WINDOW_WIDTH, WINDOW_HEIGHT, INPUT_W, INPUT_H, BTN_W, BTN_H
+from ui.widgets import make_button, handle_button_event, draw_button
+from ui.widgets import make_text_input, handle_text_input_event, draw_text_input, show_toast
+from ui.draw_helpers import clear_screen, draw_title
+from ui.layout import center_rect, vertical_stack
+from core.leaderboard_io import validate_pseudo, format_last_player_stats
+
+classe MenuScene:
+
+    fonction __init__(manager, shared, runtime_state, payload):
+        enregistrer manager, shared, runtime_state, payload
+
+        pseudo_input = None
+        play_button = None
+        buttons = []
+
+        last_lines = []
+
+    fonction on_enter():
+        """
+        Création UI :
+        1) pseudo_input
+        2) boutons
+        3) last_lines depuis summary
+        4) préremplir pseudo si summary existe
+        5) refresh bouton Jouer
+        """
+
+        rect_input = center_rect(WINDOW_WIDTH, WINDOW_HEIGHT, INPUT_W, INPUT_H, y_offset=-120)
+        pseudo_input = make_text_input(rect_input, "Entrer un pseudo", max_len=16)
+
+        summary = runtime_state["last_player_summary"]
+        last_lines = format_last_player_stats(summary)
+
+        si summary contient "pseudo":
+            pseudo_input.text = summary["pseudo"]
+            runtime_state["active_pseudo"] = summary["pseudo"]
+
+        rects = vertical_stack(
+            start_x = (WINDOW_WIDTH - BTN_W)/2,
+            start_y = (WINDOW_HEIGHT/2) - 20,
+            width = BTN_W,
+            height = BTN_H,
+            count = 4,
+            gap = 16
+        )
+
+        fonction action_play():
+            manager.go_to("game", payload={"difficulty": "MOYEN"})
+
+        fonction action_add_word():
+            manager.go_to("add_word")
+
+        fonction action_leaderboard():
+            manager.go_to("leaderboard")
+
+        fonction action_quit():
+            runtime_state["should_quit"] = True
+
+        play_button = make_button(rects[0], "Jouer", action_play, enabled=False)
+
+        buttons = [
+            play_button,
+            make_button(rects[1], "Ajouter un mot", action_add_word),
+            make_button(rects[2], "Classement", action_leaderboard),
+            make_button(rects[3], "Quitter", action_quit),
+        ]
+
+        appeler _refresh_play_enabled()
+
+    fonction _refresh_play_enabled():
+        """
+        Met play_button.enabled selon validité du pseudo.
+        Met pseudo_input.validation_message.
+        """
+        ok, normalized, msg = validate_pseudo(pseudo_input.text)
+        pseudo_input.validation_message = msg
+
+        si ok:
+            runtime_state["active_pseudo"] = normalized
+            play_button.enabled = True
+        sinon:
+            play_button.enabled = False
+
+    fonction handle_event(event):
+        """
+        1) handle_text_input_event
+           - si changed : refresh
+           - si submitted : toast + refresh
+        2) handle_button_event pour chaque bouton
+        """
+
+        mouse_pos = pygame.mouse.get_pos()
+
+        result = handle_text_input_event(pseudo_input, event)
+
+        si result["changed"]:
+            appeler _refresh_play_enabled()
+
+        si result["submitted"]:
+            ok, normalized, msg = validate_pseudo(pseudo_input.text)
+            si ok:
+                runtime_state["active_pseudo"] = normalized
+                show_toast(runtime_state["toast_manager"], "Pseudo validé", 1.2)
+            sinon:
+                show_toast(runtime_state["toast_manager"], msg, 2.0)
+            appeler _refresh_play_enabled()
+
+        pour chaque btn dans buttons:
+            handle_button_event(btn, event, mouse_pos)
+
+    fonction update(dt):
+        ne rien faire
+
+    fonction draw(screen):
+        """
+        Ordre d'affichage :
+        1) clear_screen
+        2) titre
+        3) last_lines
+        4) champ pseudo
+        5) boutons
+        """
+        clear_screen(screen)
+        draw_title(screen, shared["fonts"], "PENDU")
+
+        afficher last_lines (une ligne sous l'autre)
+        draw_text_input(screen, pseudo_input, shared["fonts"])
+        pour chaque btn:
+            draw_button(screen, btn, shared["fonts"])

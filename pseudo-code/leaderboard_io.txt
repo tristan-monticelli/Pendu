@@ -1,0 +1,259 @@
+"""
+core/leaderboard_io.py
+
+Objectif :
+- lire/écrire data/leaderboard.txt
+- valider pseudo
+- update stats après une partie
+- extraire dernier joueur
+
+FORMAT EXACT d’une ligne :
+pseudo;best_score;best_score_time_s;total_play_time_s;games_played;last_played_iso
+
+Fonctions EXACTES :
+- validate_pseudo(raw_pseudo) -> (ok, normalized, message)
+- load_leaderboard(path) -> dict[pseudo -> PlayerProfile]
+- save_leaderboard(path, leaderboard) -> None
+- sort_leaderboard(leaderboard) -> list[PlayerProfile]
+- update_player_after_game(leaderboard,pseudo,score,elapsed,now_iso) -> None
+- get_last_player_summary(leaderboard) -> dict
+- format_last_player_stats(summary) -> list[str]
+"""
+
+import os
+from settings import PSEUDO_MIN_LEN, PSEUDO_MAX_LEN, PSEUDO_FORBIDDEN_CHARS
+from core.models import PlayerProfile
+
+
+fonction validate_pseudo(raw_pseudo):
+    """
+    validate_pseudo
+
+    Entrée :
+    - raw_pseudo : str
+
+    Sortie :
+    - ok : bool
+    - normalized : str
+    - message : str
+
+    Étapes :
+    1) si None -> (False,"","Pseudo requis")
+    2) strip
+    3) si vide -> (False,"","Entrer un pseudo")
+    4) si trop long -> (False,"","Pseudo trop long (max 16)")
+    5) si contient char interdit -> (False,"","Caractère interdit")
+    6) sinon -> (True,pseudo,"Pseudo OK")
+    """
+
+    si raw_pseudo est None:
+        retourner (False, "", "Pseudo requis")
+
+    pseudo = raw_pseudo strip
+
+    si longueur pseudo < PSEUDO_MIN_LEN:
+        retourner (False, "", "Entrer un pseudo")
+
+    si longueur pseudo > PSEUDO_MAX_LEN:
+        retourner (False, "", "Pseudo trop long (max 16)")
+
+    pour chaque bad dans PSEUDO_FORBIDDEN_CHARS:
+        si bad est dans pseudo:
+            retourner (False, "", "Caractère interdit dans pseudo")
+
+    retourner (True, pseudo, "Pseudo OK")
+
+
+fonction load_leaderboard(path):
+    """
+    load_leaderboard
+
+    Entrée :
+    - path : str
+
+    Sortie :
+    - dict pseudo -> PlayerProfile
+
+    Étapes :
+    1) créer dict vide leaderboard
+    2) si fichier absent -> retourner dict vide
+    3) lire lignes
+    4) pour chaque ligne :
+       - strip
+       - ignorer vide
+       - split(';') -> doit avoir 6 éléments
+       - convertir les nombres en int
+       - créer PlayerProfile
+       - leaderboard[pseudo] = profile
+    5) retourner leaderboard
+    """
+
+    leaderboard = dictionnaire vide
+
+    si fichier path n'existe pas:
+        retourner leaderboard
+
+    lire toutes les lignes du fichier
+
+    pour chaque ligne:
+        line = line strip
+        si line est vide:
+            continuer
+
+        parts = découper line avec ";"
+        si nombre d'éléments != 6:
+            continuer (ligne invalide)
+
+        pseudo = parts[0]
+        best_score = convertir parts[1] en int (si erreur -> ignorer ligne)
+        best_time = convertir parts[2] en int
+        total_time = convertir parts[3] en int
+        games_played = convertir parts[4] en int
+        last_iso = parts[5]
+
+        profile = PlayerProfile(pseudo, best_score, best_time, total_time, games_played, last_iso)
+        leaderboard[pseudo] = profile
+
+    retourner leaderboard
+
+
+fonction save_leaderboard(path, leaderboard):
+    """
+    save_leaderboard
+
+    Objectif :
+    - réécrire tout le fichier pour refléter l’état exact du dict.
+
+    Étapes :
+    1) ouvrir path en écriture
+    2) pour chaque profile :
+       écrire la ligne formatée
+    """
+
+    ouvrir path en écriture (crée fichier si absent)
+
+    pour chaque pseudo, profile dans leaderboard:
+        line = concaténer :
+            profile.pseudo + ";" +
+            profile.best_score + ";" +
+            profile.best_score_time_seconds + ";" +
+            profile.total_play_time_seconds + ";" +
+            profile.games_played + ";" +
+            profile.last_played_iso
+
+        écrire line + "\n"
+
+    fermer fichier
+
+
+fonction sort_leaderboard(leaderboard):
+    """
+    sort_leaderboard
+
+    Entrée :
+    - dict pseudo -> PlayerProfile
+
+    Sortie :
+    - liste triée (best_score décroissant)
+
+    Étapes :
+    1) extraire profiles = leaderboard.values()
+    2) trier par profile.best_score DESC
+    3) retourner liste triée
+    """
+
+    profiles = liste de leaderboard.values
+    trier profiles par best_score décroissant
+    retourner profiles
+
+
+fonction update_player_after_game(leaderboard, pseudo, score, elapsed_seconds, now_iso):
+    """
+    update_player_after_game
+
+    Effet :
+    - modifie leaderboard en place
+
+    Étapes :
+    1) si pseudo absent :
+       créer PlayerProfile avec stats 0
+       l’ajouter au dict
+    2) incrémenter games_played
+    3) ajouter elapsed_seconds à total_play_time_seconds
+    4) last_played_iso = now_iso
+    5) si score > best_score :
+       best_score = score
+       best_score_time_seconds = elapsed_seconds
+    """
+
+    si pseudo pas dans leaderboard:
+        créer profile :
+            best_score=0
+            best_score_time_seconds=0
+            total_play_time_seconds=0
+            games_played=0
+            last_played_iso=now_iso
+        leaderboard[pseudo] = profile
+
+    p = leaderboard[pseudo]
+
+    p.games_played = p.games_played + 1
+    p.total_play_time_seconds = p.total_play_time_seconds + elapsed_seconds
+    p.last_played_iso = now_iso
+
+    si score > p.best_score:
+        p.best_score = score
+        p.best_score_time_seconds = elapsed_seconds
+
+
+fonction get_last_player_summary(leaderboard):
+    """
+    get_last_player_summary
+
+    Sortie :
+    - dict vide si leaderboard vide
+    - sinon dict :
+      {"pseudo":..., "total_play_time_seconds":..., "best_score":..., "best_score_time_seconds":...}
+
+    Étapes :
+    1) si vide -> {}
+    2) trouver profile avec last_played_iso max
+    3) construire dict summary
+    """
+
+    si leaderboard est vide:
+        retourner {}
+
+    last_profile = prendre celui dont last_played_iso est max (ordre ISO)
+    retourner {
+        "pseudo": last_profile.pseudo,
+        "total_play_time_seconds": last_profile.total_play_time_seconds,
+        "best_score": last_profile.best_score,
+        "best_score_time_seconds": last_profile.best_score_time_seconds
+    }
+
+
+fonction format_last_player_stats(summary):
+    """
+    format_last_player_stats
+
+    Entrée :
+    - summary : dict
+
+    Sortie :
+    - list[str] lignes prêtes à afficher
+
+    Étapes :
+    1) si summary vide -> ["Aucun joueur enregistré"]
+    2) sinon produire 4 lignes
+    """
+
+    si summary est vide:
+        retourner ["Aucun joueur enregistré"]
+
+    retourner [
+        "Dernier joueur : " + summary["pseudo"],
+        "Temps total : " + format_duration(summary["total_play_time_seconds"]),
+        "Meilleur score : " + str(summary["best_score"]),
+        "Temps du record : " + format_duration(summary["best_score_time_seconds"]),
+    ]

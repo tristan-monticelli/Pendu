@@ -1,0 +1,141 @@
+"""
+game_scene.py
+
+Objectif :
+- Partie de pendu
+
+Fonctions EXACTES :
+- __init__
+- on_enter
+- handle_event
+- update
+- draw
+
+Données internes de la scène :
+- game_state : GameState
+- difficulty : str
+- start_ticks : int
+- masked : str
+- feedback : str
+"""
+
+import pygame
+from settings import WORDS_PATH
+from core.words_io import load_words
+from core.scoring import set_difficulty, compute_score
+from core.game_state import start_game, apply_guess, build_masked_word
+from core.input_normalize import normalize_letter_input
+from core.time_tracker import start_session_timer, get_elapsed_seconds, stop_session_timer
+from ui.draw_helpers import clear_screen, format_duration
+from ui.widgets import show_toast
+
+classe GameScene:
+
+    fonction __init__(manager, shared, runtime_state, payload):
+        enregistrer manager, shared, runtime_state, payload
+        game_state = None
+        difficulty = None
+        max_errors = None
+        start_ticks = None
+        masked = ""
+        feedback = ""
+
+    fonction on_enter():
+        """
+        Étapes :
+        1) vérifier pseudo
+        2) difficulty=payload.get(...)
+        3) max_errors=set_difficulty
+        4) words=load_words
+        5) game_state=start_game
+        6) start_ticks=start_session_timer
+        7) masked=build_masked_word
+        """
+
+        pseudo = runtime_state["active_pseudo"]
+        si pseudo est None ou vide:
+            show_toast(runtime_state["toast_manager"], "Entrer un pseudo avant de jouer", 2.0)
+            manager.go_to("menu")
+            arrêter
+
+        difficulty = payload.get("difficulty", "MOYEN")
+        max_errors = set_difficulty(difficulty)
+
+        words = load_words(WORDS_PATH)
+        si words est vide:
+            show_toast(runtime_state["toast_manager"], "Aucun mot disponible", 2.0)
+            manager.go_to("menu")
+            arrêter
+
+        game_state = start_game(words, max_errors)
+        start_ticks = start_session_timer(pygame.time.get_ticks)
+        masked = build_masked_word(game_state.secret_word, game_state.guessed_letters)
+        feedback = ""
+
+    fonction handle_event(event):
+        """
+        Étapes :
+        1) si ESC -> menu
+        2) letter = normalize_letter_input(event)
+        3) si None -> stop
+        4) apply_guess
+        5) update masked + feedback
+        6) si fin -> elapsed + score + go_to(game_over)
+        """
+
+        si event est KEYDOWN et touche ESC:
+            manager.go_to("menu")
+            arrêter
+
+        letter = normalize_letter_input(event)
+        si letter est None:
+            arrêter
+
+        game_state, result = apply_guess(game_state, letter)
+        feedback = result.message
+        masked = build_masked_word(game_state.secret_word, game_state.guessed_letters)
+
+        si game_state.status est "won" ou "lost":
+            elapsed = stop_session_timer(start_ticks, pygame.time.get_ticks)
+            score = compute_score(game_state, difficulty, elapsed)
+
+            payload = {
+                "status": game_state.status,
+                "secret_word": game_state.secret_word,
+                "score": score,
+                "elapsed_seconds": elapsed,
+                "difficulty": difficulty
+            }
+            manager.go_to("game_over", payload=payload)
+
+    fonction update(dt):
+        ne rien faire
+
+    fonction draw(screen):
+        """
+        Ordre d'affichage :
+        1) clear_screen
+        2) afficher difficulté
+        3) afficher timer live
+        4) afficher masked
+        5) afficher wrong_letters + restant
+        6) afficher feedback
+        7) dessiner pendu selon nb_wrong (option images)
+        """
+
+        clear_screen(screen)
+
+        elapsed_live = get_elapsed_seconds(start_ticks, pygame.time.get_ticks)
+
+        afficher "Difficulté : difficulty"
+        afficher "Temps : " + format_duration(elapsed_live)
+        afficher "Mot : " + masked
+
+        nb_wrong = taille(game_state.wrong_letters)
+        restant = max_errors - nb_wrong
+        afficher "Erreurs : " + concat des wrong_letters
+        afficher "Restant : " + str(restant)
+
+        afficher feedback
+
+        dessiner pendu selon nb_wrong

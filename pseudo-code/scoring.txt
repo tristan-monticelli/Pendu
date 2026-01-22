@@ -1,0 +1,111 @@
+"""
+core/scoring.py
+
+Objectif :
+- Convertir difficulté -> max_errors
+- Calculer un score stable
+- Fournir un texte de résultat (si utile)
+
+Fonctions EXACTES :
+- set_difficulty(difficulty) -> int
+- compute_score(game_state, difficulty, elapsed_seconds) -> int
+- format_game_result(score, elapsed_seconds, status) -> str
+"""
+
+from settings import MAX_ERRORS_BY_DIFFICULTY
+
+fonction set_difficulty(difficulty):
+    """
+    Convertit une difficulté en max_errors.
+
+    Entrée :
+    - difficulty : str ("FACILE"/"MOYEN"/"DIFFICILE")
+
+    Sortie :
+    - max_errors : int
+
+    Étapes :
+    1) si difficulty inconnue -> difficulty="MOYEN"
+    2) retourner MAX_ERRORS_BY_DIFFICULTY[difficulty]
+    """
+    si difficulty pas dans MAX_ERRORS_BY_DIFFICULTY:
+        difficulty = "MOYEN"
+    retourner MAX_ERRORS_BY_DIFFICULTY[difficulty]
+
+
+fonction compute_score(game_state, difficulty, elapsed_seconds):
+    """
+    Calcul du score.
+
+    Entrées :
+    - game_state : GameState
+    - difficulty : str
+    - elapsed_seconds : int
+
+    Sortie :
+    - score : int
+
+    Règles détaillées (stables) :
+    1) points_lettres = nb_lettres_trouvées * 10
+       - nb_lettres_trouvées = taille(game_state.guessed_letters)
+    2) pénalité = nb_erreurs * 5
+       - nb_erreurs = taille(game_state.wrong_letters)
+    3) bonus difficulté :
+       - FACILE -> 0
+       - MOYEN -> 10
+       - DIFFICILE -> 20
+    4) bonus temps :
+       - < 60s -> +15
+       - < 120s -> +8
+       - sinon -> +0
+    5) score = points_lettres - pénalité + bonus_diff + bonus_time
+    6) si score < 0 => score = 0
+    """
+
+    nb_found = taille de game_state.guessed_letters
+    nb_wrong = taille de game_state.wrong_letters
+
+    points_lettres = nb_found * 10
+    penalite = nb_wrong * 5
+
+    si difficulty == "FACILE":
+        bonus_diff = 0
+    sinon si difficulty == "MOYEN":
+        bonus_diff = 10
+    sinon:
+        bonus_diff = 20
+
+    si elapsed_seconds < 60:
+        bonus_time = 15
+    sinon si elapsed_seconds < 120:
+        bonus_time = 8
+    sinon:
+        bonus_time = 0
+
+    score = points_lettres - penalite + bonus_diff + bonus_time
+    si score < 0:
+        score = 0
+
+    retourner score
+
+
+fonction format_game_result(score, elapsed_seconds, status):
+    """
+    Renvoie une phrase affichable.
+
+    Entrées :
+    - score : int
+    - elapsed_seconds : int
+    - status : str
+
+    Sortie :
+    - str
+
+    Étapes :
+    1) prefix = "Victoire !" si status == "won" sinon "Défaite..."
+    2) temps = format_duration(elapsed_seconds) (dans le vrai code)
+    3) retourner f"{prefix} Score: {score} | Temps: {temps}"
+    """
+    choisir prefix
+    formater temps
+    retourner phrase

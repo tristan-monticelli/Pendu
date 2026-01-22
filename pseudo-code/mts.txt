@@ -1,0 +1,31 @@
+mots.txt
+
+Objectif :
+- Stocker les mots jouables du pendu.
+- 1 mot par ligne.
+- Le jeu choisit un mot aléatoirement dans cette liste.
+
+Règles de format (OBLIGATOIRES) :
+1) 1 ligne = 1 mot
+2) Pas de lignes vides (si une ligne est vide, elle sera ignorée)
+3) Pas d'espaces dans un mot
+4) Pas de point-virgule ';' (car utilisé comme séparateur dans leaderboard.txt)
+5) Minuscule conseillé (sinon le loader transforme en minuscule)
+
+Exemples de contenu valide :
+
+ordinateur
+python
+marseille
+banane
+fromage
+voiture
+montagne
+internet
+puzzle
+
+Exemples invalides (doivent être refusés par validate_word + add_word) :
+
+mot composé        (contient un espace)
+test;hack           (contient ;)
+                   (ligne vide)

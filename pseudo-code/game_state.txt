@@ -1,0 +1,183 @@
+"""
+core/game_state.py
+
+Objectif :
+- Logique pure du pendu.
+
+Fonctions EXACTES à coder :
+- start_game(words_list, max_errors) -> GameState
+- apply_guess(game_state, letter) -> (GameState, GuessResult)
+- build_masked_word(secret_word, guessed_letters) -> str
+- check_end_condition(game_state) -> GameState
+
+Aucune UI, aucun Pygame.
+"""
+
+import random
+from core.models import GameState, GuessResult
+
+
+fonction start_game(words_list, max_errors):
+    """
+    start_game
+
+    Entrées :
+    - words_list : list[str]   (doit contenir au moins 1 mot)
+    - max_errors : int         (doit être >= 1)
+
+    Sortie :
+    - GameState initialisé
+
+    Préconditions :
+    - words_list non vide
+    - max_errors >= 1
+
+    Étapes :
+    1) si words_list est vide -> déclencher erreur contrôlée
+    2) choisir un mot aléatoire
+    3) créer guessed_letters = set()
+    4) créer wrong_letters = set()
+    5) status = "playing"
+    6) retourner GameState(...)
+    """
+
+    si words_list est vide:
+        déclencher une erreur "Aucun mot disponible"
+
+    secret_word = choisir au hasard dans words_list
+
+    guessed_letters = ensemble vide
+    wrong_letters = ensemble vide
+    status = "playing"
+
+    retourner GameState(secret_word, guessed_letters, wrong_letters, max_errors, status)
+
+
+fonction apply_guess(game_state, letter):
+    """
+    apply_guess
+
+    Entrées :
+    - game_state : GameState (status peut être playing/won/lost)
+    - letter : str (une seule lettre déjà normalisée en minuscule)
+
+    Sortie :
+    - (game_state_modifié, GuessResult)
+
+    Préconditions :
+    - letter est une str de longueur 1
+    - letter est alphabétique
+
+    Étapes détaillées :
+    1) si game_state.status != "playing":
+        - ne rien changer
+        - retourner (game_state, GuessResult("invalid","La partie est terminée"))
+
+    2) si letter déjà jouée :
+        - condition : letter dans guessed_letters OU letter dans wrong_letters
+        - ne rien changer
+        - retourner (game_state, GuessResult("already","Lettre déjà jouée"))
+
+    3) vérifier si letter est dans secret_word :
+        a) si OUI :
+           - ajouter letter à guessed_letters
+           - result = GuessResult("good","Bonne lettre !")
+        b) si NON :
+           - ajouter letter à wrong_letters
+           - result = GuessResult("bad","Mauvaise lettre...")
+
+    4) mettre à jour fin de partie :
+       - game_state = check_end_condition(game_state)
+
+    5) retourner (game_state, result)
+    """
+
+    si game_state.status != "playing":
+        retourner (game_state, GuessResult("invalid", "La partie est terminée"))
+
+    si letter est dans game_state.guessed_letters OU letter est dans game_state.wrong_letters:
+        retourner (game_state, GuessResult("already", "Lettre déjà jouée"))
+
+    si letter est dans game_state.secret_word:
+        ajouter letter à game_state.guessed_letters
+        result = GuessResult("good", "Bonne lettre !")
+    sinon:
+        ajouter letter à game_state.wrong_letters
+        result = GuessResult("bad", "Mauvaise lettre...")
+
+    game_state = check_end_condition(game_state)
+    retourner (game_state, result)
+
+
+fonction build_masked_word(secret_word, guessed_letters):
+    """
+    build_masked_word
+
+    Entrées :
+    - secret_word : str
+    - guessed_letters : set[str]
+
+    Sortie :
+    - str affichable, ex : "_ a _ _ e"
+
+    Étapes :
+    1) créer liste parts vide
+    2) pour chaque caractère c de secret_word :
+       - si c est une lettre ET c dans guessed_letters -> parts.append(c)
+       - sinon -> parts.append("_")
+    3) retourner " ".join(parts)
+    """
+
+    parts = liste vide
+
+    pour chaque caractère c dans secret_word:
+        si c est alphabétique ET c est dans guessed_letters:
+            ajouter c à parts
+        sinon:
+            ajouter "_" à parts
+
+    retourner joindre parts avec des espaces
+
+
+fonction check_end_condition(game_state):
+    """
+    check_end_condition
+
+    Entrée :
+    - GameState
+
+    Sortie :
+    - GameState (même objet, status mis à jour)
+
+    Étapes :
+    1) construire set lettres_uniques_du_mot :
+       - prendre chaque caractère du secret_word
+       - garder uniquement ceux qui sont alphabétiques
+       - les mettre dans un set
+
+    2) victoire :
+       - si lettres_uniques_du_mot est inclus dans guessed_letters
+       - alors status = "won"
+
+    3) défaite :
+       - si len(wrong_letters) >= max_errors
+       - alors status = "lost"
+
+    4) sinon status reste "playing"
+    """
+
+    lettres_uniques = ensemble vide
+    pour chaque caractère c dans game_state.secret_word:
+        si c est alphabétique:
+            ajouter c à lettres_uniques
+
+    si lettres_uniques est inclus dans game_state.guessed_letters:
+        game_state.status = "won"
+        retourner game_state
+
+    si taille de game_state.wrong_letters >= game_state.max_errors:
+        game_state.status = "lost"
+        retourner game_state
+
+    game_state.status = "playing"
+    retourner game_state

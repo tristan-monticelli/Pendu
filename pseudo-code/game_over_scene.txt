@@ -1,0 +1,97 @@
+"""
+game_over_scene.py
+
+Objectif :
+- Afficher fin de partie
+- Mettre à jour leaderboard
+- Boutons Rejouer / Menu
+
+Fonctions EXACTES :
+- __init__
+- on_enter
+- handle_event
+- update
+- draw
+"""
+
+import pygame
+import datetime
+from settings import LEADERBOARD_PATH, WINDOW_WIDTH, WINDOW_HEIGHT, BTN_W, BTN_H
+from core.leaderboard_io import update_player_after_game, save_leaderboard, get_last_player_summary
+from ui.widgets import make_button, handle_button_event, draw_button
+from ui.draw_helpers import clear_screen, draw_title, format_duration
+from ui.layout import vertical_stack
+
+classe GameOverScene:
+
+    fonction __init__(manager, shared, runtime_state, payload):
+        enregistrer manager, shared, runtime_state, payload
+
+        status = payload["status"]
+        secret_word = payload["secret_word"]
+        score = payload["score"]
+        elapsed_seconds = payload["elapsed_seconds"]
+        difficulty = payload["difficulty"]
+
+        btn_replay = None
+        btn_menu = None
+
+    fonction on_enter():
+        pseudo = runtime_state["active_pseudo"]
+
+        si pseudo existe:
+            now_iso = datetime.datetime.utcnow().isoformat() + "Z"
+
+            leaderboard = runtime_state["leaderboard_cache"]
+
+            update_player_after_game(leaderboard, pseudo, score, elapsed_seconds, now_iso)
+
+            save_leaderboard(LEADERBOARD_PATH, leaderboard)
+
+            runtime_state["last_player_summary"] = get_last_player_summary(leaderboard)
+
+        rects = vertical_stack(
+            start_x=(WINDOW_WIDTH - BTN_W)/2,
+            start_y=(WINDOW_HEIGHT/2) + 80,
+            width=BTN_W,
+            height=BTN_H,
+            count=2,
+            gap=16
+        )
+
+        fonction action_replay():
+            manager.go_to("game", payload={"difficulty": difficulty})
+
+        fonction action_menu():
+            manager.go_to("menu")
+
+        btn_replay = make_button(rects[0], "Rejouer", action_replay)
+        btn_menu = make_button(rects[1], "Menu", action_menu)
+
+    fonction handle_event(event):
+        mouse_pos = pygame.mouse.get_pos()
+
+        handle_button_event(btn_replay, event, mouse_pos)
+        handle_button_event(btn_menu, event, mouse_pos)
+
+        si event est KEYDOWN et touche ESC:
+            manager.go_to("menu")
+
+    fonction update(dt):
+        ne rien faire
+
+    fonction draw(screen):
+        clear_screen(screen)
+
+        si status == "won":
+            draw_title(screen, shared["fonts"], "VICTOIRE !")
+        sinon:
+            draw_title(screen, shared["fonts"], "DEFAITE...")
+
+        afficher "Mot : " + secret_word
+        afficher "Score : " + str(score)
+        afficher "Temps : " + format_duration(elapsed_seconds)
+        afficher "Difficulté : " + difficulty
+
+        draw_button(screen, btn_replay, shared["fonts"])
+        draw_button(screen, btn_menu, shared["fonts"])

@@ -1,0 +1,38 @@
+settings.txt
+
+Objectif :
+- Contenir des paramètres modifiables sans toucher au code.
+- Pour un projet étudiant 1 semaine : format clé=valeur, très simple.
+
+Format :
+- 1 ligne = 1 paramètre
+- clé=valeur
+- lignes vides ignorées
+- lignes commençant par # ignorées (commentaires)
+
+Exemple :
+
+# Fenêtre
+WINDOW_WIDTH=1000
+WINDOW_HEIGHT=700
+FPS=60
+
+# Fichiers
+WORDS_PATH=data/mots.txt
+LEADERBOARD_PATH=data/leaderboard.txt
+
+# UI
+BTN_W=320
+BTN_H=56
+INPUT_W=420
+INPUT_H=52
+
+# Pseudo
+PSEUDO_MIN_LEN=1
+PSEUDO_MAX_LEN=16
+
+# Difficulté
+FACILE_MAX_ERRORS=8
+MOYEN_MAX_ERRORS=6
+DIFFICILE_MAX_ERRORS=5
+LEADERBOARD_TOP_N=20

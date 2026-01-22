@@ -1,0 +1,54 @@
+"""
+core/time_tracker.py
+
+Objectif :
+- gérer le temps d'une partie via pygame.time.get_ticks
+
+Fonctions EXACTES :
+- start_session_timer(get_ticks_func) -> int
+- get_elapsed_seconds(start_ticks, get_ticks_func) -> int
+- stop_session_timer(start_ticks, get_ticks_func) -> int
+"""
+
+fonction start_session_timer(get_ticks_func):
+    """
+    Démarre un timer.
+
+    Entrée :
+    - get_ticks_func : fonction renvoyant des ms
+
+    Sortie :
+    - start_ticks : int
+
+    Étapes :
+    1) start_ticks = get_ticks_func()
+    2) retourner start_ticks
+    """
+    start_ticks = appeler get_ticks_func()
+    retourner start_ticks
+
+
+fonction get_elapsed_seconds(start_ticks, get_ticks_func):
+    """
+    Temps écoulé.
+
+    Étapes :
+    1) now = get_ticks_func()
+    2) elapsed_ms = now - start_ticks
+    3) si elapsed_ms < 0 : elapsed_ms = 0
+    4) elapsed_seconds = int(elapsed_ms / 1000)
+    5) retourner elapsed_seconds
+    """
+    now = appeler get_ticks_func()
+    elapsed_ms = now - start_ticks
+    si elapsed_ms < 0:
+        elapsed_ms = 0
+    elapsed_seconds = elapsed_ms divisé par 1000 (entier)
+    retourner elapsed_seconds
+
+
+fonction stop_session_timer(start_ticks, get_ticks_func):
+    """
+    Stoppe un timer : identique à get_elapsed_seconds.
+    """
+    retourner get_elapsed_seconds(start_ticks, get_ticks_func)

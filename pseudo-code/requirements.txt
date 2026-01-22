@@ -1,0 +1,1 @@
+# mettre "pygame" et sa version utiliser 

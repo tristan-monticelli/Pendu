@@ -1,0 +1,60 @@
+"""
+ui/layout.py
+
+Objectif :
+- Fonctions utilitaires de placement pour éviter de recalculer partout.
+- Réduire la complexité dans les scènes.
+
+Fonctions EXACTES :
+- center_rect(container_w, container_h, rect_w, rect_h, y_offset=0)
+- vertical_stack(start_x, start_y, width, height, count, gap)
+"""
+
+fonction center_rect(container_w, container_h, rect_w, rect_h, y_offset=0):
+    """
+    Calcule un rectangle centré (type pygame.Rect dans le vrai code).
+
+    Entrées :
+    - container_w, container_h : taille de la fenêtre
+    - rect_w, rect_h : taille du rectangle
+    - y_offset : décalage vertical
+
+    Sortie :
+    - un rectangle (x, y, w, h)
+
+    Étapes :
+    1) x = (container_w - rect_w) / 2
+    2) y = (container_h - rect_h) / 2 + y_offset
+    3) retourner rect(x, y, rect_w, rect_h)
+    """
+    calculer x
+    calculer y
+    retourner rect
+
+
+fonction vertical_stack(start_x, start_y, width, height, count, gap):
+    """
+    Crée une liste de rectangles alignés verticalement.
+
+    Entrées :
+    - start_x, start_y : position du premier rect
+    - width, height : taille de chaque rect
+    - count : nombre de rectangles
+    - gap : espace vertical entre les rectangles
+
+    Sortie :
+    - list de rects
+
+    Étapes :
+    1) rects = []
+    2) pour i de 0 à count-1 :
+       - x = start_x
+       - y = start_y + i * (height + gap)
+       - rects.append(rect(x, y, width, height))
+    3) retourner rects
+    """
+    rects = liste vide
+    pour i:
+        calculer x,y
+        ajouter rect
+    retourner rects

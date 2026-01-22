@@ -1,0 +1,60 @@
+"""
+core/models.py
+
+Objectif :
+- Définir les structures.
+- Ces structures doivent être les seules formes de données dans core/ (pas de dict flou).
+
+Aucune dépendance Pygame.
+"""
+
+classe GameState:
+    """
+    GameState
+
+    Champs (types attendus) :
+    - secret_word : str
+    - guessed_letters : set[str]     # lettres correctes déjà trouvées
+    - wrong_letters : set[str]       # lettres fausses déjà tentées
+    - max_errors : int              # erreurs autorisées selon difficulté
+    - status : str                  # "playing" / "won" / "lost"
+
+    Invariants :
+    - guessed_letters et wrong_letters ne se chevauchent jamais
+    - len(wrong_letters) <= max_errors tant que playing
+    """
+
+    fonction __init__(secret_word, guessed_letters, wrong_letters, max_errors, status):
+        enregistrer tous les champs
+
+
+classe PlayerProfile:
+    """
+    PlayerProfile (persisté dans leaderboard.txt)
+
+    Champs :
+    - pseudo : str
+    - best_score : int
+    - best_score_time_seconds : int
+    - total_play_time_seconds : int
+    - games_played : int
+    - last_played_iso : str
+    """
+
+    fonction __init__(pseudo, best_score, best_score_time_seconds,
+                      total_play_time_seconds, games_played, last_played_iso):
+        enregistrer tous les champs
+
+
+classe GuessResult:
+    """
+    GuessResult (feedback UI)
+
+    Champs :
+    - kind : str ("good" / "bad" / "already" / "invalid")
+    - message : str (prêt à afficher)
+    """
+
+    fonction __init__(kind, message):
+        enregistrer kind
+        enregistrer message
