@@ -2,9 +2,9 @@
 __pycache__/
 *.py[cod]
 
-# Environnements virtuels
+# Environnements virtuels pour nos téléchargements
 .venv/
 venv/
 
-# Classement généré (évite les conflits en groupe)
+# le Classement généré 
 data/leaderboard.txt
