@@ -1,0 +1,5 @@
+# pseudo;best_score;best_score_time_s;total_play_time_s;games_played;last_played_iso
+Joueur 1;0;0;13;3;2026-01-23T12:31:54.733842
+Salut;586;32;50;5;2026-01-23T13:49:20.510315
+ss;0;0;7;1;2026-01-23T13:28:16.014255
+f;0;0;7;1;2026-01-23T13:28:16.014882
