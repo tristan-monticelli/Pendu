@@ -15,6 +15,10 @@ NOUVEAU
 - La difficulté est modifiable pendant le jeu (touche TAB)
 - Les mots viennent de mots.txt avec un format :
   FACILE;mot;indice / MOYEN;mot / DIFFICILE;mot
+
+TUTORIEL
+- Si show_tutorial=True (pseudo nouveau), on affiche un overlay
+- IMPORTANT : le jeu ne doit PAS réagir tant que le tuto n'est pas fermé
 """
 
 from __future__ import annotations
@@ -62,6 +66,9 @@ class GameScene:
 
         self.btn_menu = None
 
+        # Tutoriel sur nouveau joueur
+        self.show_tutorial = False
+        self.tutorial_closed = False
 
     def on_enter(self):
         """
@@ -73,6 +80,7 @@ class GameScene:
         3) charger un mot selon difficulté
         4) démarrer GameState + timer
         5) créer bouton menu
+        6) initialiser le tutoriel si besoin
         """
         pseudo = self.runtime_state.get("active_pseudo")
         if not pseudo:
@@ -104,6 +112,15 @@ class GameScene:
         self.btn_menu = make_button(rect, "Menu", action_menu)
         self.feedback_line = "Deviner une lettre au clavier (TAB = changer difficulté)"
 
+        # Tutoriel si pseudo nouveau (envoyé par le menu)
+        self.show_tutorial = bool(self.payload.get("show_tutorial", False))
+        self.tutorial_closed = False
+
+        # IMPORTANT :
+        # Si le tutoriel est affiché, on veut que le temps "ne démarre pas vraiment".
+        # Donc on remet le timer à 0 ici, et on le relancera quand le tuto sera fermé.
+        if self.show_tutorial and not self.tutorial_closed:
+            self.start_ticks = start_session_timer(lambda: 0)  # valeur neutre (on reset au vrai tick après)
 
     def _start_new_game(self) -> bool:
         """
@@ -127,10 +144,11 @@ class GameScene:
             self.current_hint = ""
 
         self.state = start_game_from_word(secret_word, self.max_errors)
+
+        # Timer normal : démarre maintenant (sauf si on affiche un tuto, on reset après)
         self.start_ticks = start_session_timer(pygame.time.get_ticks)
 
         return True
-
 
     def _cycle_difficulty(self):
         """
@@ -152,16 +170,35 @@ class GameScene:
         else:
             self.manager.go_to("menu")
 
-
     def handle_event(self, event):
         """
         Events :
+        - TUTORIEL (prioritaire) : fermer le tuto
         - ESC : retour menu
         - TAB : changer difficulté + nouvelle partie
         - lettre : tentative
         """
         if self.state is None:
             return
+
+        # ---------------------------------------------------------
+        # PRIORITÉ : tutoriel
+        # Tant que le tuto n'est pas fermé, le jeu ne doit PAS réagir.
+        # On écoute seulement la fermeture (ENTREE / ESPACE / ECHAP).
+        # ---------------------------------------------------------
+        if self.show_tutorial and not self.tutorial_closed:
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
+                    self.tutorial_closed = True
+
+                    # On démarre le timer "pour de vrai" au moment où le tuto se ferme
+                    self.start_ticks = start_session_timer(pygame.time.get_ticks)
+
+                    # Message simple
+                    self.feedback_line = "Tutoriel fermé : bonne chance !"
+            return
+
+        # Ensuite seulement : le jeu normal
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.btn_menu.action()
@@ -195,10 +232,8 @@ class GameScene:
             }
             self.manager.go_to("game_over", payload=payload)
 
-
     def update(self, dt):
         return
-
 
     def draw(self, screen):
         if self.state is None:
@@ -207,7 +242,11 @@ class GameScene:
         clear_screen(screen)
         draw_title(screen, self.fonts, "PARTIE")
 
-        elapsed_s = get_elapsed_seconds(self.start_ticks, pygame.time.get_ticks)
+        # Si tuto affiché : on affiche le temps à 00:00 (puisque la partie n'a pas commencé)
+        if self.show_tutorial and not self.tutorial_closed:
+            elapsed_s = 0
+        else:
+            elapsed_s = get_elapsed_seconds(self.start_ticks, pygame.time.get_ticks)
 
         pseudo = self.runtime_state.get("active_pseudo", "—")
         wrong_count = len(self.state.wrong_letters)
@@ -241,3 +280,44 @@ class GameScene:
 
         draw_button(screen, self.btn_menu, self.fonts)
         draw_hint_bottom(screen, self.fonts, "Lettre | TAB = difficulté | ESC = menu")
+
+        # Overlay tutoriel (par-dessus tout)
+        if self.show_tutorial and not self.tutorial_closed:
+            self._draw_tutorial_overlay(screen)
+
+    def _draw_tutorial_overlay(self, screen):
+        """
+        Affiche une fenêtre de tutoriel par-dessus la scène.
+        - pas d'image, pas d'animation compliquée
+        - texte simple + consignes
+        """
+        # Fond semi-transparent
+        overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        screen.blit(overlay, (0, 0))
+
+        # Fenêtre centrale
+        box_w, box_h = 720, 360
+        box_x = (WINDOW_WIDTH - box_w) // 2
+        box_y = (WINDOW_HEIGHT - box_h) // 2
+        box_rect = pygame.Rect(box_x, box_y, box_w, box_h)
+
+        pygame.draw.rect(screen, (40, 40, 40), box_rect, border_radius=12)
+        pygame.draw.rect(screen, (120, 120, 120), box_rect, 2, border_radius=12)
+
+        lines = [
+            "TUTORIEL - COMMENT JOUER",
+            "",
+            "- Taper une lettre au clavier pour proposer",
+            "- 7 erreurs maximum (peu importe la difficulte)",
+            "- FACILE : un indice est affiche",
+            "- TAB : changer de difficulte et relancer une nouvelle partie",
+            "- ESC : retour menu (apres le tuto)",
+            "",
+            "Appuyer sur ENTREE / ESPACE / ECHAP pour fermer",
+        ]
+
+        # Affichage simple (réutilise votre helper)
+        from ui.draw_helpers import draw_text_lines
+        draw_text_lines(screen, self.fonts, lines, box_x + 30, box_y + 30, small=True)

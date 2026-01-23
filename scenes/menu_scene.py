@@ -61,11 +61,10 @@ class MenuScene:
         self.buttons = []
         self.play_button = None
 
-        # Nouveau : bouton difficulté
+        # Bouton difficulté
         self.diff_button = None
 
         self.last_player_lines = []
-
 
     def on_enter(self):
         """
@@ -92,8 +91,13 @@ class MenuScene:
             gap=14,
         )
 
-
         def action_play():
+            """
+            Lancer une partie.
+
+            Nouveau :
+            - si le pseudo n'existe pas dans le classement -> tuto au début.
+            """
             ok, normalized, msg = validate_pseudo(self.pseudo_input.text)
             if not ok:
                 show_toast(self.runtime_state["toast_manager"], msg, 2.0)
@@ -101,9 +105,21 @@ class MenuScene:
 
             self.runtime_state["active_pseudo"] = normalized
 
+            # Difficulté sélectionnée dans le menu
             diff = self.runtime_state.get("selected_difficulty", DEFAULT_DIFFICULTY)
-            self.manager.go_to("game", payload={"difficulty": diff})
 
+            # Détecter si pseudo nouveau (pas encore dans le leaderboard)
+            leaderboard = self.runtime_state.get("leaderboard_cache", {})
+            is_new_player = normalized not in leaderboard
+
+            # On envoie un payload complet (difficulty + tutoriel)
+            self.manager.go_to(
+                "game",
+                payload={
+                    "difficulty": diff,
+                    "show_tutorial": is_new_player,
+                }
+            )
 
         def action_change_difficulty():
             """
@@ -120,14 +136,11 @@ class MenuScene:
             self.runtime_state["selected_difficulty"] = new_diff
             self.diff_button.label = f"Difficulté : {new_diff}"
 
-
         def action_add_word():
             self.manager.go_to("add_word")
 
-
         def action_leaderboard():
             self.manager.go_to("leaderboard")
-
 
         def action_quit():
             self.runtime_state["should_quit"] = True
@@ -146,7 +159,6 @@ class MenuScene:
         ]
 
         self._refresh_play_enabled()
-
 
     def _build_last_player_lines(self):
         summary = self.runtime_state.get("last_player_summary", {})
@@ -172,7 +184,6 @@ class MenuScene:
         if ok:
             self.runtime_state["active_pseudo"] = normalized
 
-
     def handle_event(self, event):
         mouse_pos = pygame.mouse.get_pos()
 
@@ -189,10 +200,8 @@ class MenuScene:
         for btn in self.buttons:
             handle_button_event(btn, event, mouse_pos)
 
-
     def update(self, dt):
         return
-
 
     def draw(self, screen):
         clear_screen(screen)
