@@ -3,6 +3,7 @@ Logique pure du pendu, sans UI et sans Pygame.
 
 Fonctions :
 - start_game(words_list, max_errors) -> GameState
+- start_game_from_word(secret_word, max_errors) -> GameState   (ajout)
 - apply_guess(game_state, letter) -> (GameState, GuessResult)
 - build_masked_word(secret_word, guessed_letters) -> str
 - check_end_condition(game_state) -> GameState
@@ -34,6 +35,33 @@ def start_game(words_list: List[str], max_errors: int) -> GameState:
         raise ValueError("max_errors doit être >= 1")
 
     secret_word = random.choice(words_list)
+
+    guessed_letters: Set[str] = set()
+    wrong_letters: Set[str] = set()
+    status = "playing"
+
+    return GameState(
+        secret_word=secret_word,
+        guessed_letters=guessed_letters,
+        wrong_letters=wrong_letters,
+        max_errors=max_errors,
+        status=status,
+    )
+
+
+def start_game_from_word(secret_word: str, max_errors: int) -> GameState:
+    """
+    Démarre une nouvelle partie à partir d'un mot déjà choisi.
+
+    Pourquoi :
+    - Maintenant on choisit les mots selon la difficulté (facile/moyen/difficile),
+      donc on a besoin de pouvoir démarrer directement avec ce mot.
+    """
+    if not secret_word:
+        raise ValueError("secret_word vide")
+
+    if max_errors < 1:
+        raise ValueError("max_errors doit être >= 1")
 
     guessed_letters: Set[str] = set()
     wrong_letters: Set[str] = set()

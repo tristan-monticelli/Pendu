@@ -1,6 +1,4 @@
 """
-models.py
-
 Structures de données du projet Pendu.
 
 Objectif :

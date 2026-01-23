@@ -7,21 +7,26 @@ Fonctions :
 - set_difficulty(difficulty) -> int
 - compute_score(game_state, difficulty, elapsed_seconds) -> int
 - format_game_result(score, elapsed_seconds, status) -> str
+
+CHANGEMENT CONSIGNE :
+- Peu importe la difficulté : max_errors = 7
 """
 
 from __future__ import annotations
 
-from typing import Optional
-
-from settings import MAX_ERRORS_BY_DIFFICULTY
 from core.models import GameState
+from settings import MAX_ERRORS_BY_DIFFICULTY
 
 
 def set_difficulty(difficulty: str) -> int:
     """
     Convertit une difficulté en max_errors.
-    Si difficulté inconnue, MOYEN par défaut.
+
+    CONSIGNE :
+    - Peu importe la difficulté : 7 erreurs maximum.
     """
+    # On garde la structure existante (simple),
+    # mais le dictionnaire vaut 7 partout.
     if difficulty not in MAX_ERRORS_BY_DIFFICULTY:
         difficulty = "MOYEN"
     return int(MAX_ERRORS_BY_DIFFICULTY[difficulty])
@@ -29,7 +34,7 @@ def set_difficulty(difficulty: str) -> int:
 
 def compute_score(game_state: GameState, difficulty: str, elapsed_seconds: int) -> int:
     """
-    Calcul du score (comme dans notrez pseudo-code).
+    Calcul du score (simple et stable).
 
     - points_lettres = nb_lettres_trouvées * 10
     - penalite = nb_erreurs * 5
