@@ -230,6 +230,14 @@ def draw_text_input(screen: pygame.Surface, input_field: TextInput, fonts: Dict[
     if input_field.text:
         txt = input_field.text
         color = COLOR_TEXT
+
+        # Curseur clignotant si focus (effet réaliste)
+        if input_field.focused:
+            tick = pygame.time.get_ticks()
+            cursor_visible = (tick // 400) % 2 == 0  # clignote toutes les ~400ms
+            if cursor_visible:
+                txt = txt + "|"
+
     else:
         txt = input_field.placeholder
         color = COLOR_MUTED
