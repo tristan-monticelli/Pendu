@@ -1,42 +1,52 @@
 """
-BUT DE LA SCÈNE
-- Afficher la fin de partie (victoire / défaite).
-- Afficher :
-    - mot à trouver
-    - difficulté
-    - temps
-    - score
-- Mettre à jour le classement (leaderboard) :
-    - update_player_after_game
-    - save_leaderboard
-    - recalculer last_player_summary (pour le menu)
+game_over_scene.py — Scène de fin de partie (victoire / défaite)
 
-NAVIGATION
-- Bouton "Rejouer" : relance une partie avec la même difficulté
-- Bouton "Menu" : retour menu
-- ESC : retour menu
+Rôle
+- Afficher un écran de résultats après une partie :
+  - état (VICTOIRE / DÉFAITE)
+  - mot à trouver, difficulté, temps, score
+  - visage de Trump adapté (happy si gagné, dead si perdu)
+- Sauvegarder le résultat dans le leaderboard (une seule fois).
+- Proposer deux actions principales : REJOUER ou revenir au MENU.
 
-PAYLOAD ATTENDU (depuis game_scene.py)
-- status : "won" / "lost"
-- score : int
-- elapsed_seconds : int
-- difficulty : str
-- secret_word : str
-- wrong_letters : list[str]
+Données attendues (payload)
+- score : score final de la partie
+- elapsed_seconds : durée de la partie (en secondes)
+- secret_word : le mot à deviner (affiché en fin)
+- difficulty : difficulté jouée
+- status : "won" ou "lost" (sert à décider victoire/défaite)
+
+Données utilisées côté runtime_state
+- active_pseudo : pseudo du joueur (obligatoire pour sauvegarder)
+- leaderboard_cache : classement en mémoire (mis à jour ici)
+- toast_manager : pour afficher un petit message de confirmation
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-
 import pygame
 
 from settings import (
     WINDOW_WIDTH,
     WINDOW_HEIGHT,
-    BTN_W,
-    BTN_H,
+    COLORS,
+    BUTTON_SIZES,
     LEADERBOARD_PATH,
+)
+
+from ui.simpson_theme import (
+    draw_simpson_background,
+    draw_cartoon_card,
+    draw_text_with_shadow,
+    draw_outlined_text,
+    format_duration,
+)
+
+from ui.simpson_components import (
+    SimpsonButton,
+    make_button,
+    show_toast,
 )
 
 from core.leaderboard_io import (
@@ -45,25 +55,30 @@ from core.leaderboard_io import (
     get_last_player_summary,
 )
 
-from ui.draw_helpers import clear_screen, draw_title, draw_text_lines, format_duration, draw_hint_bottom
-from ui.widgets import make_button, handle_button_event, draw_button, show_toast
-from ui.layout import vertical_stack
-
 
 class GameOverScene:
     """
-    Scène de fin : affiche les résultats et sauvegarde le classement.
+    Scène de fin de partie (style Simpson).
+
+    Ce que fait la scène
+    - À l'entrée : déterminer victoire/défaite + sauvegarder le résultat.
+    - Affichage : une card centrale avec image Trump, titre, infos et boutons.
+    - Interactions :
+      - ESC -> menu
+      - ENTREE -> rejouer (même difficulté)
+      - clic sur REJOUER / MENU
+
+    Important
+    - La sauvegarde ne doit pas être faite à chaque frame : on la fait une seule fois
+      grâce au flag self._saved.
     """
 
     def __init__(self, manager, shared, runtime_state, payload):
         """
-        Constructeur.
+        Constructeur standard des scènes.
 
-        Paramètres :
-        - manager : SceneManager (navigation)
-        - shared : ressources (fonts)
-        - runtime_state : état global (pseudo, leaderboard_cache, toast_manager)
-        - payload : résultats de la partie (voir docstring en haut)
+        On stocke les références utiles, puis on initialise des attributs simples.
+        L'UI est construite dans on_enter() pour être cohérente quand on revient sur la scène.
         """
         self.manager = manager
         self.shared = shared
@@ -71,103 +86,60 @@ class GameOverScene:
         self.payload = payload
 
         self.fonts = self.shared["fonts"]
+        self.assets = self.shared["assets"]
 
-        # Boutons
+        # Boutons (créés dans _create_buttons)
         self.btn_retry = None
         self.btn_menu = None
 
-        # Texte à afficher
-        self.lines = []
+        # Statut victoire/défaite (calculé dans on_enter)
+        self.is_victory = False
 
-        # Pour éviter de sauvegarder deux fois si on revient sur la scène
+        # Flag de sauvegarde : empêche d'écrire plusieurs fois le même résultat
         self._saved = False
 
     def on_enter(self):
         """
-        Appelé quand on arrive sur la scène.
+        Appelé à l'entrée dans la scène.
 
-        Étapes :
-        1) construire les lignes à afficher
-        2) sauvegarder le score dans le leaderboard (1 seule fois)
-        3) créer les boutons
+        Ici on :
+        - lit le payload pour savoir si on a gagné ou perdu
+        - sauvegarde le résultat dans le leaderboard (une seule fois)
+        - crée les boutons de navigation
         """
-        self.lines = self._build_result_lines()
-
-        # On sauvegarde tout de suite en arrivant sur la scène
+        self.is_victory = self.payload.get("status", "lost") == "won"
         self._save_result_once()
-
-        # Boutons centrés (Rejouer / Menu)
-        rects = vertical_stack(
-            start_x=(WINDOW_WIDTH - BTN_W) // 2,
-            start_y=(WINDOW_HEIGHT // 2) + 120,
-            rect_w=BTN_W,
-            rect_h=BTN_H,
-            count=2,
-            gap=16,
-        )
-
-        def action_retry():
-            # Rejouer avec la même difficulté
-            diff = self.payload.get("difficulty", "MOYEN")
-            self.manager.go_to("game", payload={"difficulty": diff})
-
-        def action_menu():
-            self.manager.go_to("menu")
-
-        self.btn_retry = make_button(rects[0], "Rejouer", action_retry)
-        self.btn_menu = make_button(rects[1], "Menu", action_menu)
-
-    def _build_result_lines(self):
-        """
-        Construit les lignes affichées (résumé de fin de partie).
-        """
-        status = self.payload.get("status", "lost")
-        score = int(self.payload.get("score", 0))
-        elapsed_seconds = int(self.payload.get("elapsed_seconds", 0))
-        difficulty = self.payload.get("difficulty", "MOYEN")
-        secret_word = self.payload.get("secret_word", "—")
-
-        if status == "won":
-            title_line = "VICTOIRE !"
-        else:
-            title_line = "DÉFAITE..."
-
-        return [
-            title_line,
-            f"Mot : {secret_word}",
-            f"Difficulté : {difficulty}",
-            f"Temps : {format_duration(elapsed_seconds)}",
-            f"Score : {score}",
-        ]
+        self._create_buttons()
 
     def _save_result_once(self):
         """
-        Met à jour le leaderboard et sauvegarde.
+        Sauvegarde les résultats dans le classement, mais une seule fois.
 
-        Important :
-        - On utilise runtime_state["leaderboard_cache"] pour garder un cache.
-        - On réécrit le fichier leaderboard.txt.
-        - On met à jour runtime_state["last_player_summary"] pour le menu.
+        Étapes
+        - Récupérer le pseudo (si absent : on ne sauvegarde pas).
+        - Lire score et temps depuis le payload.
+        - Mettre à jour leaderboard_cache en mémoire.
+        - Écrire sur disque (save_leaderboard).
+        - Mettre à jour last_player_summary (utile pour le menu).
+        - Afficher un toast "Score sauvegardé" pour feedback joueur.
+
+        Remarque
+        - now_iso est stocké en UTC pour avoir un format stable.
         """
         if self._saved:
             return
 
         pseudo = self.runtime_state.get("active_pseudo")
         if not pseudo:
-            # Normalement impossible (pseudo obligatoire), mais on sécurise
-            show_toast(self.runtime_state["toast_manager"], "Pseudo manquant : score non sauvegardé", 2.0)
             self._saved = True
             return
 
         score = int(self.payload.get("score", 0))
         elapsed_seconds = int(self.payload.get("elapsed_seconds", 0))
-
-        # Date ISO simple (triable et propre)
         now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         leaderboard = self.runtime_state.get("leaderboard_cache", {})
 
-        # 1) Update en mémoire
         update_player_after_game(
             leaderboard=leaderboard,
             pseudo=pseudo,
@@ -176,62 +148,218 @@ class GameOverScene:
             now_iso=now_iso,
         )
 
-        # 2) Sauvegarde sur disque
         save_leaderboard(LEADERBOARD_PATH, leaderboard)
-
-        # 3) Mettre à jour le résumé "dernier joueur"
         self.runtime_state["last_player_summary"] = get_last_player_summary(leaderboard)
 
-        # Message utilisateur
-        show_toast(self.runtime_state["toast_manager"], "Score sauvegardé", 1.2)
-
+        show_toast(self.runtime_state["toast_manager"], "Score sauvegardé !", 1.5)
         self._saved = True
+
+    def _create_buttons(self):
+        """
+        Crée les boutons REJOUER et MENU (placés dans la card).
+
+        Détail placement
+        - On recalcule ici les coordonnées de la card pour placer les boutons au bon endroit.
+        - Les boutons sont côte à côte, en bas de la card, avec un gap fixe.
+        """
+        btn_width = 220
+        btn_height = 55
+
+        # Dimensions de la card (doivent rester cohérentes avec draw)
+        card_width = 750
+        card_height = 620
+        card_x = (WINDOW_WIDTH - card_width) // 2
+        card_y = (WINDOW_HEIGHT - card_height) // 2 - 10
+
+        gap = 30
+        total_width = btn_width * 2 + gap
+        start_x = card_x + (card_width - total_width) // 2
+        btn_y = card_y + card_height - 85
+
+        def action_retry():
+            # On rejoue en gardant la difficulté si elle est fournie
+            diff = self.payload.get("difficulty", "MOYEN")
+            self.manager.go_to("game", payload={"difficulty": diff})
+
+        def action_menu():
+            self.manager.go_to("menu")
+
+        self.btn_retry = make_button(
+            rect=pygame.Rect(start_x, btn_y, btn_width, btn_height),
+            text="REJOUER",
+            action=action_retry,
+            color=COLORS["btn_green_pale"],
+        )
+
+        self.btn_menu = make_button(
+            rect=pygame.Rect(start_x + btn_width + gap, btn_y, btn_width, btn_height),
+            text="MENU",
+            action=action_menu,
+            color=COLORS["btn_yellow_pale"],
+        )
 
     def handle_event(self, event):
         """
-        Gestion des events.
+        Gestion des events Pygame sur l'écran de fin.
 
-        Règles :
-        - ESC -> menu
-        - clic boutons -> actions
+        Raccourcis clavier
+        - ESC : retour menu
+        - ENTREE : rejouer direct (même difficulté)
+
+        Souris
+        - On relaye l'event aux deux boutons.
         """
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            self.manager.go_to("menu")
-            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.manager.go_to("menu")
+                return
+            if event.key == pygame.K_RETURN:
+                diff = self.payload.get("difficulty", "MOYEN")
+                self.manager.go_to("game", payload={"difficulty": diff})
+                return
 
         mouse_pos = pygame.mouse.get_pos()
-        handle_button_event(self.btn_retry, event, mouse_pos)
-        handle_button_event(self.btn_menu, event, mouse_pos)
+        self.btn_retry.handle_event(event, mouse_pos)
+        self.btn_menu.handle_event(event, mouse_pos)
 
     def update(self, dt):
         """
-        Pas d'animation spéciale.
+        Mise à jour frame.
+
+        Ici il n'y a pas d'animation ni de timer à gérer, donc on laisse vide.
         """
-        return
+        pass
 
     def draw(self, screen):
         """
-        Dessin :
-        - fond
-        - titre (Game Over)
-        - lignes résultat
-        - boutons
-        """
-        clear_screen(screen)
-        draw_title(screen, self.fonts, "FIN DE PARTIE")
+        Dessine l'écran de fin.
 
-        # Afficher le résultat (un bloc de lignes)
-        draw_text_lines(
-            screen=screen,
-            fonts=self.fonts,
-            lines=self.lines,
-            x=60,
-            y=150,
-            small=False,
+        Structure visuelle
+        - Fond Simpson
+        - Card centrale
+        - Image Trump (happy ou dead)
+        - Titre (VICTOIRE / DÉFAITE)
+        - Infos de partie (mot, difficulté, temps, score)
+        - Boutons (rejouer / menu)
+        - Astuce en bas (style menu)
+        """
+        # Fond
+        draw_simpson_background(screen)
+
+        # Card principale
+        card_width = 750
+        card_height = 620
+        card_rect = pygame.Rect(
+            (WINDOW_WIDTH - card_width) // 2,
+            (WINDOW_HEIGHT - card_height) // 2 - 10,
+            card_width,
+            card_height
+        )
+
+        draw_cartoon_card(screen, card_rect, bg_color=COLORS["bg_card"])
+
+        # Visage Trump
+        trump_key = "trump_happy" if self.is_victory else "trump_dead"
+        trump_bottom = card_rect.top + 40
+
+        if trump_key in self.assets:
+            trump_img = self.assets[trump_key]
+            trump_rect = trump_img.get_rect(
+                centerx=card_rect.centerx,
+                top=card_rect.top + 20
+            )
+            screen.blit(trump_img, trump_rect)
+            trump_bottom = trump_rect.bottom
+
+        # Titre victoire/défaite (couleur bien visible)
+        if self.is_victory:
+            title_text = "VICTOIRE !"
+            title_color = (34, 139, 34)  # vert foncé
+        else:
+            title_text = "DÉFAITE..."
+            title_color = (178, 34, 34)  # rouge foncé
+
+        title_y = trump_bottom + 20
+
+        draw_outlined_text(
+            screen,
+            title_text,
+            (card_rect.centerx, title_y),
+            self.fonts["huge"],
+            color=title_color,
+            outline_color=COLORS["border_black"],
+            outline_width=4,
+            centered=True,
+        )
+
+        # Infos de partie
+        secret_word = self.payload.get("secret_word", "—").upper()
+        difficulty = self.payload.get("difficulty", "MOYEN")
+        elapsed_seconds = int(self.payload.get("elapsed_seconds", 0))
+        score = int(self.payload.get("score", 0))
+
+        info_start_y = title_y + 80
+        line_height = 45
+        text_color = COLORS["text_black"]
+
+        draw_text_with_shadow(
+            screen,
+            f"Le mot était : {secret_word}",
+            (card_rect.centerx, info_start_y),
+            self.fonts["body"],
+            color=text_color,
+            shadow_color=(100, 100, 100),
+            shadow_offset=(2, 2),
+            centered=True,
+        )
+
+        draw_text_with_shadow(
+            screen,
+            f"Difficulté : {difficulty}",
+            (card_rect.centerx, info_start_y + line_height),
+            self.fonts["body"],
+            color=text_color,
+            shadow_color=(100, 100, 100),
+            shadow_offset=(1, 1),
+            centered=True,
+        )
+
+        draw_text_with_shadow(
+            screen,
+            f"Temps : {format_duration(elapsed_seconds)}",
+            (card_rect.centerx, info_start_y + line_height * 2),
+            self.fonts["body"],
+            color=text_color,
+            shadow_color=(100, 100, 100),
+            shadow_offset=(1, 1),
+            centered=True,
+        )
+
+        # Score (un peu mis en valeur)
+        score_y = info_start_y + line_height * 3 + 15
+        draw_outlined_text(
+            screen,
+            f"Score : {score}",
+            (card_rect.centerx, score_y),
+            self.fonts["large"],
+            color=COLORS["simpson_yellow"],
+            outline_color=COLORS["border_black"],
+            outline_width=3,
+            centered=True,
         )
 
         # Boutons
-        draw_button(screen, self.btn_retry, self.fonts)
-        draw_button(screen, self.btn_menu, self.fonts)
+        self.btn_retry.draw(screen, self.fonts["body"])
+        self.btn_menu.draw(screen, self.fonts["body"])
 
-        draw_hint_bottom(screen, self.fonts, "ESC pour revenir au menu")
+        # Hint bas d'écran
+        draw_outlined_text(
+            screen,
+            "ASTUCE :  ESC = menu  |  ENTRÉE = rejouer",
+            (WINDOW_WIDTH // 2, WINDOW_HEIGHT - 35),
+            self.fonts["body"],
+            color=COLORS["simpson_yellow"],
+            outline_color=COLORS["border_black"],
+            outline_width=3,
+            centered=True,
+        )
